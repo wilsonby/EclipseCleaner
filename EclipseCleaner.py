@@ -91,11 +91,11 @@ def calculateMLCEdges():
 
 if __name__ == '__main__':
     #Load the files
-    RP = dcm.dcmread('RP.CMAT1.pbraFIN.dcm')
-    RS = dcm.dcmread('RS.CMAT1.dcm')
-    
+  
     RP = dcm.dcmread("RP.dcm")   
     RS = dcm.dcmread("RS.dcm")
+#    RP = dcm.dcmread("RP.CMAT1.dcm")   
+#    RS = dcm.dcmread("RS.CMAT1.dcm")
     contours = loadContours(RS)
     # for each beam check wether the open fluences overlap with the PTV 
     for beam in RP.BeamSequence:
@@ -120,11 +120,11 @@ if __name__ == '__main__':
             MLCA = MLC[:60]
             MLCB = MLC[60:]
             #I have to add IEC to program unit conversion
-            gantryAngle = CP.GantryAngle*np.pi/180
+            gantryAngle = -CP.GantryAngle*np.pi/180
             
             #Transform the points to the beam coordinate system
             iContours = transformPoints(contours,iso,gantryAngle, collimatorAngle,couchAngle)
-            print(iContours[0,:],gantryAngle)
+#            print(iContours[0,:],gantryAngle)
             MLCEdges = calculateMLCEdges()
             for j in range(60): #For each leaf pair
                 
@@ -133,7 +133,6 @@ if __name__ == '__main__':
 
                     
                     MLCReplaceValue = (MLCA[j] + MLCB[j])/2
-                    MLCReplaceValue = -10
                     MLC.value[j] = MLCReplaceValue
                     MLC.value[j+60] = MLCReplaceValue
 #                    print('closed', MLCA[j] - MLCB[j])
