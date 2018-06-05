@@ -92,34 +92,29 @@ def calculateMLCEdges():
 if __name__ == '__main__':
     #Load the files
   
-    RP = dcm.dcmread("RP.dcm")   
-    RS = dcm.dcmread("RS.dcm")
-#    RP = dcm.dcmread("RP.CMAT1.dcm")   
-#    RS = dcm.dcmread("RS.CMAT1.dcm")
+#    RP = dcm.dcmread("RP.dcm")   
+#    RS = dcm.dcmread("RS.dcm")
+    RP = dcm.dcmread("RP.CMAT1.dcm")   
+    RS = dcm.dcmread("RS.CMAT1.dcm")
     contours = loadContours(RS)
     # for each beam check wether the open fluences overlap with the PTV 
     for beam in RP.BeamSequence:
         #For each control point
         for i,CP in enumerate(beam.ControlPointSequence):
-        
-#        for i in [0]:
             CP = beam.ControlPointSequence[i]
-            #grab information from CP structure pertinent to calculation
+            #grab information from ControlPoint (CP) structure pertinent to calculation
             if i == 0:
                 MLC = CP.BeamLimitingDevicePositionSequence[2]['300a', '011c']
-#                MLCX2 = CP.BeamLimitingDevicePositionSequence[2]
                 iso = np.array([CP.IsocenterPosition]).T
                 couchAngle = CP.PatientSupportAngle*np.pi/180
                 collimatorAngle = CP.BeamLimitingDeviceAngle *np.pi/180
-                
-                
+                      
             else:
                 MLC = CP.BeamLimitingDevicePositionSequence[0]['300a', '011c']
-#                MLCX2 = CP.BeamLimitingDevicePositionSequence[1]
             
             MLCA = MLC[:60]
             MLCB = MLC[60:]
-            #I have to add IEC to program unit conversion
+            
             gantryAngle = -CP.GantryAngle*np.pi/180
             
             #Transform the points to the beam coordinate system
@@ -128,15 +123,16 @@ if __name__ == '__main__':
             MLCEdges = calculateMLCEdges()
             for j in range(60): #For each leaf pair
                 
+                #Find Contour points which are in the band of the MLC Leaf Pair
                 MLCBandContours = iContours[np.logical_and(iContours.T[2]>MLCEdges[j],iContours.T[2]<MLCEdges[j+1])]
-                if not(len(MLCBandContours)):
-
-                    
+               
+                contoursBetweenLeafPairs = MLCBandContours[np.logical_and(MLCBandContours.T[0]>MLCA[j],MLCBandContours.T[0]<MLCB[j])]
+                if not(len(contoursBetweenLeafPairs)): #If no points between leafs
+                    #Close the leaves (but leave 1mm gap)
                     MLCReplaceValue = (MLCA[j] + MLCB[j])/2
-                    MLC.value[j] = MLCReplaceValue
-                    MLC.value[j+60] = MLCReplaceValue
-#                    print('closed', MLCA[j] - MLCB[j])
-              
+                    MLC.value[j] = MLCReplaceValue - 0.5
+                    MLC.value[j+60] = MLCReplaceValue + 0.5 #1mm leaf gap
+                                  
             
             if i == 0:
                 CP.BeamLimitingDevicePositionSequence[2]['300a', '011c'] = MLC
@@ -145,14 +141,4 @@ if __name__ == '__main__':
             beam.ControlPointSequence[i] = CP
     
     RP.save_as('FixedMLC1.dcm')
-#                else:
-#                    shouldBeClosed.append(0)
-#                    PTVL = MLCBandContours.min(axis = 0)[0]
-#                    PTVR = MLCBandContours.max(axis = 0)[0]
-#                
-#                
-#        
-               
-                
-        #Optimize with a linear program
-        
+
